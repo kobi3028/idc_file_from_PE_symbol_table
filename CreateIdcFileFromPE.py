@@ -4,7 +4,7 @@ from SymnetStruct import *
 
 
 def create_idc_file(file_path, symbol_table):
-    with open('{0}.idc'.format(file_path.rstrip('.exe')), 'w', 0) as f:
+    with open('{0}.idc'.format(file_path[:-4]), 'w', 0) as f:
         f.write('#include <idc.idc>\nstatic main(void) {\n')
         for entry in symbol_table:
             if (entry.e_type & 0b00110000) >> 4 == int(DerivedType.DT_FCN) and entry.e_scnum > 0:
