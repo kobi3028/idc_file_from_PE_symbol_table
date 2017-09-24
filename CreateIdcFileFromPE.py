@@ -56,6 +56,6 @@ def main(argv):
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
-        print 'Usage: CreateIdcFileFromPESymbols.py pe_file_name'
+        print 'Usage: CreateIdcFileFromPE.py pe_file_name'
     else:
         main(sys.argv[1:])
