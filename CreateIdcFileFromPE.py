@@ -27,22 +27,27 @@ def main(argv):
 
     with open(file_path, 'rb') as f:
         buf = f.read()
-
-        if buf[:2] != 'MZ' or len(buf) < 0x178 \
-                or struct.unpack_from("<H", buf[MACHINE_TYPE_LOCATION:MACHINE_TYPE_LOCATION+2])[0] != I386_MACHINE:
+        if buf[:2] != 'MZ':
             raise Exception('Not A Valid x86 PE File')
 
-        symbol_table_offset = struct.unpack_from("<I", buf[PTR_SYMBOL_TABLE_LOCATION:PTR_SYMBOL_TABLE_LOCATION+4])[0]
-        number_of_symbols = struct.unpack_from("<I", buf[NUM_OF_SYMBOL_LOCATION:NUM_OF_SYMBOL_LOCATION+4])[0]
+        nt_header_location = struct.unpack_from("<I", buf[NT_HEADER_PTR_LOCATION:NT_HEADER_PTR_LOCATION + 4])[0]
+        machine_type_location = nt_header_location + OFFSET_MACHINE_TYPE_LOCATION
+        if struct.unpack_from("<H", buf[machine_type_location:machine_type_location+2])[0] != I386_MACHINE:
+            raise Exception('Not A Valid x86 PE File')
+
+        symbol_table_location = nt_header_location + OFFSET_PTR_SYMBOL_TABLE
+        number_of_symbols_location = nt_header_location + OFFSET_NUM_OF_SYMBOL
+        symbol_table_offset = struct.unpack_from("<I", buf[symbol_table_location:symbol_table_location+4])[0]
+        number_of_symbols = struct.unpack_from("<I", buf[number_of_symbols_location:number_of_symbols_location+4])[0]
 
         if symbol_table_offset == 0 or number_of_symbols == 0:
-            raise Exception('There is No Debug Data')
+            raise Exception('There is No Debug Data, You Will Need To Work Harder :-)')
 
         string_table_offset = symbol_table_offset + (number_of_symbols * SYMNET_STRUCT_SIZE)
         i = 0
         print '=' * 10 + 'Symbol Table' + '=' * 10
         while i < number_of_symbols:
-            entry = Symnet(string_table_offset, buf, symbol_table_offset + (i * SYMNET_STRUCT_SIZE))
+            entry = Symnet(string_table_offset, buf, nt_header_location,symbol_table_offset + (i * SYMNET_STRUCT_SIZE))
             if entry.e_numaux > 0:
                 i += entry.e_numaux
             print (entry)
