@@ -22,14 +22,16 @@ typedef struct {
 
 # consts
 BASE_ADDRESS = 0x400000
-OFFSET_SECTION_HEADER_TABLE = 0x178
 SECTION_HEADER_ENTRY_SIZE = 0x28
 VIRTUAL_ADDRESS_OFFSET = 0x0c
 SYMNET_STRUCT_SIZE = 0x12
-MACHINE_TYPE_LOCATION = 0x84
 I386_MACHINE = 0x14c
-PTR_SYMBOL_TABLE_LOCATION = 0x8c
-NUM_OF_SYMBOL_LOCATION = 0x90
+
+OFFSET_MACHINE_TYPE_LOCATION = 0x04
+NT_HEADER_PTR_LOCATION = 0x3c
+NT_HEADER_SIZE = 0xf8
+OFFSET_PTR_SYMBOL_TABLE = 0x0c
+OFFSET_NUM_OF_SYMBOL = 0x10
 
 
 class BaseTypes(Enum):
@@ -132,7 +134,7 @@ class Name(object):
 class Symnet(object):
     FORMAT = "<L h H B B"
 
-    def __init__(self, string_table_offset, buf, offset=0):
+    def __init__(self, string_table_offset, buf, nt_header_location, offset):
         tmp = struct.unpack_from(Symnet.FORMAT, buf, offset + 8)
         self.e = Name(string_table_offset, buf, offset)
         self.e_value = tmp[0]
@@ -141,7 +143,7 @@ class Symnet(object):
         self.e_sclass = tmp[3]
         self.e_numaux = tmp[4]
         if self.e_scnum > 0:
-            self.sec_vtrl_addrs = self.get_section_virtual_address(buf)
+            self.sec_vtrl_addrs = self.get_section_virtual_address(buf, nt_header_location)
 
     def get_value(self):
         if (self.e_type & 0b00110000) >> 4 == int(DerivedType.DT_FCN) and self.e_scnum > 0:
@@ -157,8 +159,9 @@ class Symnet(object):
             t = BaseTypes(self.e_type & 0b00001111).name
         return '\n\tDerivedType:{0} BaseTypes:{1}\r'.format(dt, t)
 
-    def get_section_virtual_address(self, buf):
-        loc = OFFSET_SECTION_HEADER_TABLE + ((self.e_scnum - 1) * SECTION_HEADER_ENTRY_SIZE) + VIRTUAL_ADDRESS_OFFSET
+    def get_section_virtual_address(self, buf, nt_header_location):
+        loc = nt_header_location + NT_HEADER_SIZE + ((self.e_scnum - 1) * SECTION_HEADER_ENTRY_SIZE)\
+              + VIRTUAL_ADDRESS_OFFSET
         return struct.unpack_from("<I", buf[loc:loc + 4])[0]
 
     def __str__(self):
